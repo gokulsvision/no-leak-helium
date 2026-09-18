@@ -1,0 +1,39 @@
+{
+  "ExtensionInstallBlocklist": [
+    "gighmmpiobklfepjocnamgkkbiglidom"
+  ],
+  "ExtensionSettings": {
+    "gighmmpiobklfepjocnamgkkbiglidom": {
+      "installation_mode": "blocked"
+    }
+  },
+  "DnsOverHttpsMode": "secure",
+  "DnsOverHttpsTemplates": "https://dns.mullvad.net/dns-query",
+  "SearchSuggestEnabled": false,
+  "SpellCheckServiceEnabled": false,
+  "TranslateEnabled": false,
+  "PasswordLeakDetectionEnabled": false,
+  "SafeBrowsingEnabled": false,
+  "SafeBrowsingExtendedReportingEnabled": false,
+  "SafeBrowsingProtectionLevel": 0,
+  "UrlKeyedAnonymizedDataCollectionEnabled": false,
+  "MetricsReportingEnabled": false,
+  "CloudReportingEnabled": false,
+  "ChromeVariations": 2,
+  "NetworkPredictionOptions": 2,
+  "WebRtcIPHandling": "default_public_interface_only",
+  "HyperlinkAuditingEnabled": false,
+  "AlternateErrorPagesEnabled": false,
+  "BackgroundModeEnabled": false,
+  "BrowserSignin": 0,
+  "SyncDisabled": true,
+  "ComponentUpdatesEnabled": false,
+  "EnableMediaRouter": false,
+  "BlockThirdPartyCookies": true,
+  "PasswordManagerEnabled": false,
+  "AutofillCreditCardEnabled": false,
+  "SUEnableAutomaticChecks": false,
+  "SUAutomaticallyUpdate": false,
+  "SUScheduledCheckInterval": 0,
+  "SUSendProfileInfo": false
+}

@@ -1,0 +1,32 @@
+--- a/chrome/browser/ui/browser_ui_prefs.cc
++++ b/chrome/browser/ui/browser_ui_prefs.cc
+@@ -156,7 +156,7 @@ void RegisterBrowserUserPrefs(user_prefs
+   registry->RegisterBooleanPref(
+       prefs::kEnableDoNotTrack, false,
+       user_prefs::PrefRegistrySyncable::SYNCABLE_PREF);
+-  registry->RegisterBooleanPref(prefs::kHeliumGlobalPrivacyControl, false);
++  registry->RegisterBooleanPref(prefs::kHeliumGlobalPrivacyControl, true);
+ #if !BUILDFLAG(IS_CHROMEOS) && !BUILDFLAG(IS_ANDROID)
+   registry->RegisterBooleanPref(prefs::kPrintPreviewUseSystemDefaultPrinter,
+                                 false);
+@@ -226,7 +226,7 @@ void RegisterBrowserUserPrefs(user_prefs
+     registry->RegisterIntegerPref(prefs::kHeliumSchemaVersion, 0);
+     registry->RegisterBooleanPref(prefs::kHeliumDisableSchemaAlerts, false);
+-    registry->RegisterBooleanPref(prefs::kHeliumServicesEnabled, true);
++    registry->RegisterBooleanPref(prefs::kHeliumServicesEnabled, false);
+     registry->RegisterStringPref(prefs::kHeliumServicesOrigin, "");
+     registry->RegisterBooleanPref(prefs::kHeliumDidOnboarding, false);
+     registry->RegisterBooleanPref(prefs::kHeliumServicesConsented, false);
+--- a/chrome/browser/prefs/browser_prefs.cc
++++ b/chrome/browser/prefs/browser_prefs.cc
+@@ -1439,7 +1439,7 @@ void RegisterLocalState(PrefRegistrySimp
+   breadcrumbs::RegisterPrefs(registry);
+   browser_shutdown::RegisterPrefs(registry);
+   BrowserProcessImpl::RegisterPrefs(registry);
+   registry->RegisterIntegerPref(
+       prefs::kHeliumCrashReportingMode,
+-      static_cast<int>(helium::CrashReportingMode::kAsk));
++      static_cast<int>(helium::CrashReportingMode::kDisabled));
+   ChromeContentBrowserClient::RegisterLocalStatePrefs(registry);
+ #if BUILDFLAG(CHROME_FOR_TESTING)
+   chrome_for_testing::RegisterPrefs(registry);

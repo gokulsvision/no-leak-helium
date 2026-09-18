@@ -1,0 +1,52 @@
+name: Watch upstream Helium
+on:
+  schedule:
+    - cron: "0 14 * * 0"
+  workflow_dispatch:
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Compare with imputnet/helium
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git fetch https://github.com/imputnet/helium.git main:upstream-main
+          OURS=$(git rev-parse HEAD)
+          UPSTREAM=$(git rev-parse upstream-main)
+          echo "ours=$OURS"
+          echo "upstream=$UPSTREAM"
+          if [ "$OURS" = "$UPSTREAM" ]; then
+            echo "In sync with imputnet/helium main."
+            exit 0
+          fi
+          TITLE="Upstream Helium moved ($UPSTREAM)"
+          BODY=$(cat <<EOF
+          imputnet/helium main is ahead of this fork.
+
+          - fork HEAD: \`$OURS\`
+          - upstream main: \`$UPSTREAM\`
+
+          Maintenance steps are in [MAINTAINING.md](../blob/main/MAINTAINING.md).
+
+          \`\`\`
+          git fetch upstream
+          git merge upstream/main
+          # refresh patches/gokul/zero-telemetry-defaults.patch if it fails to apply
+          git push origin main
+          \`\`\`
+          EOF
+          )
+          if gh issue list --state open --search "Upstream Helium moved" --json number --jq 'length' | grep -qx 0; then
+            gh issue create --title "$TITLE" --body "$BODY"
+          else
+            echo "An upstream-sync issue is already open."
+          fi

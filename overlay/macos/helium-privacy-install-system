@@ -1,0 +1,36 @@
+#!/bin/bash
+# One-time admin lock: macOS managed policies + /etc/hosts sinkhole.
+# Helium UI cannot override these. Safe to re-run.
+set -euo pipefail
+STAGED="$HOME/.helium-private/net.imput.helium.managed.plist"
+DEST="/Library/Managed Preferences/net.imput.helium.plist"
+HOSTS="/etc/hosts"
+MARKER="# helium-privacy-lock"
+
+python3 "$HOME/.local/bin/helium-privacy-lock" >/dev/null
+
+if [[ ! -f "$STAGED" ]]; then
+  echo "missing staged policy plist: $STAGED" >&2
+  exit 1
+fi
+
+TMP_HOSTS="$(mktemp)"
+grep -v "$MARKER" "$HOSTS" > "$TMP_HOSTS" || true
+{
+  echo ""
+  echo "$MARKER"
+  for h in services.helium.imput.net crash.helium.computer updates.helium.computer getadblock.com www.getadblock.com adblockcdn.com; do
+    echo "0.0.0.0 $h $MARKER"
+    echo "::1 $h $MARKER"
+  done
+} >> "$TMP_HOSTS"
+
+/bin/mkdir -p "/Library/Managed Preferences"
+/usr/bin/install -m 644 "$STAGED" "$DEST"
+/bin/cp "$TMP_HOSTS" "$HOSTS"
+/bin/chmod 644 "$HOSTS"
+rm -f "$TMP_HOSTS"
+dscacheutil -flushcache >/dev/null 2>&1 || true
+killall -HUP mDNSResponder >/dev/null 2>&1 || true
+echo "Installed managed policies at $DEST"
+echo "Sinkholed Helium/AdBlock hosts in $HOSTS"

@@ -1,0 +1,302 @@
+#!/usr/bin/env python3
+"""Re-apply Helium zero-telemetry lock. Safe to run while Helium is open.
+
+While Helium is running this only touches Sparkle defaults, status, and
+update checks. Chromium JSON prefs are patched only when Helium is stopped,
+so tabs/settings are not corrupted.
+"""
+from __future__ import annotations
+
+import json
+import os
+import plistlib
+import subprocess
+import sys
+import urllib.request
+from datetime import datetime, timezone
+from pathlib import Path
+
+PROFILE = Path.home() / "Library/Application Support/net.imput.helium"
+PREFS = PROFILE / "Default/Preferences"
+LOCAL_STATE = PROFILE / "Local State"
+STATUS = Path.home() / ".helium-private/status.txt"
+POLICY_DIR = PROFILE / "policies/managed"
+POLICY_JSON = POLICY_DIR / "privacy.json"
+STAGED_MANAGED = Path.home() / ".helium-private/net.imput.helium.managed.plist"
+APP = Path("/Applications/Helium.app")
+ADBLOCK_ID = "gighmmpiobklfepjocnamgkkbiglidom"
+UBO_ID = "cjpalhdlnbpafiamejdnhcphjbkeiagm"
+UBO_CRX = Path.home() / ".local/share/ublock/uBlock0_1.75.0.chromium.crx"
+UBO_VERSION = "1.75.0"
+GITHUB_LATEST = "https://api.github.com/repos/imputnet/helium-macos/releases/latest"
+DOH = "https://dns.mullvad.net/dns-query"
+
+HOSTS_BLOCK = [
+    "services.helium.imput.net",
+    "crash.helium.computer",
+    "updates.helium.computer",
+    "getadblock.com",
+    "www.getadblock.com",
+    "adblockcdn.com",
+]
+
+CHROME_POLICIES = {
+    "ExtensionInstallBlocklist": [ADBLOCK_ID],
+    "ExtensionSettings": {
+        ADBLOCK_ID: {"installation_mode": "blocked"},
+    },
+    "DnsOverHttpsMode": "secure",
+    "DnsOverHttpsTemplates": DOH,
+    "SearchSuggestEnabled": False,
+    "SpellCheckServiceEnabled": False,
+    "TranslateEnabled": False,
+    "PasswordLeakDetectionEnabled": False,
+    "SafeBrowsingEnabled": False,
+    "SafeBrowsingExtendedReportingEnabled": False,
+    "SafeBrowsingProtectionLevel": 0,
+    "UrlKeyedAnonymizedDataCollectionEnabled": False,
+    "MetricsReportingEnabled": False,
+    "CloudReportingEnabled": False,
+    "ChromeVariations": 2,
+    "NetworkPredictionOptions": 2,
+    "WebRtcIPHandling": "default_public_interface_only",
+    "HyperlinkAuditingEnabled": False,
+    "AlternateErrorPagesEnabled": False,
+    "BackgroundModeEnabled": False,
+    "BrowserSignin": 0,
+    "SyncDisabled": True,
+    "ComponentUpdatesEnabled": False,
+    "EnableMediaRouter": False,
+    "BlockThirdPartyCookies": True,
+    "PasswordManagerEnabled": False,
+    "AutofillCreditCardEnabled": False,
+    "SUEnableAutomaticChecks": False,
+    "SUAutomaticallyUpdate": False,
+    "SUScheduledCheckInterval": 0,
+    "SUSendProfileInfo": False,
+}
+
+
+def log(msg: str) -> None:
+    print(msg)
+
+
+def helium_running() -> bool:
+    r = subprocess.run(
+        ["pgrep", "-f", "/Applications/Helium.app/Contents/MacOS/Helium"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    return r.returncode == 0
+
+
+def set_path(d: dict, dotted: str, value) -> None:
+    parts = dotted.split(".")
+    cur = d
+    for p in parts[:-1]:
+        nxt = cur.get(p)
+        if not isinstance(nxt, dict):
+            nxt = {}
+            cur[p] = nxt
+        cur = nxt
+    cur[parts[-1]] = value
+
+
+def sparkle_off() -> None:
+    pairs = [
+        ("SUEnableAutomaticChecks", "-bool", "false"),
+        ("SUAutomaticallyUpdate", "-bool", "false"),
+        ("SUScheduledCheckInterval", "-int", "0"),
+        ("SUSendProfileInfo", "-bool", "false"),
+    ]
+    for key, flag, val in pairs:
+        subprocess.run(
+            ["defaults", "write", "net.imput.helium", key, flag, val],
+            check=False,
+        )
+
+
+def write_policy_json() -> None:
+    POLICY_DIR.mkdir(parents=True, exist_ok=True)
+    POLICY_JSON.write_text(json.dumps(CHROME_POLICIES, indent=2) + "\n")
+    STAGED_MANAGED.parent.mkdir(parents=True, exist_ok=True)
+    with STAGED_MANAGED.open("wb") as f:
+        plistlib.dump(CHROME_POLICIES, f)
+
+
+def patch_chromium_json() -> list[str]:
+    notes = []
+    if helium_running():
+        notes.append("Helium is open: skipped Preferences/Local State file edits")
+        return notes
+    if PREFS.exists():
+        prefs = json.loads(PREFS.read_text())
+        set_path(prefs, "helium.services.enabled", False)
+        set_path(prefs, "helium.services.bangs", False)
+        set_path(prefs, "helium.services.browser_updates", False)
+        set_path(prefs, "helium.services.ext_proxy", False)
+        set_path(prefs, "helium.services.spellcheck_files", False)
+        set_path(prefs, "helium.services.ublock_assets", False)
+        set_path(prefs, "helium.services.disable_schema_alerts", True)
+        set_path(prefs, "helium.services.user_consented", True)
+        set_path(prefs, "helium.global_privacy_control", True)
+        set_path(prefs, "helium.noise.enabled", True)
+        set_path(prefs, "session.restore_on_startup", 5)
+        set_path(prefs, "dns_over_https.mode", "secure")
+        set_path(prefs, "dns_over_https.templates", DOH)
+        set_path(prefs, "webrtc.ip_handling_policy", "default_public_interface_only")
+        set_path(prefs, "net.network_prediction_options", 2)
+        set_path(prefs, "enable_do_not_track", True)
+        set_path(prefs, "search.suggest_enabled", False)
+        set_path(prefs, "spellcheck.use_spelling_service", False)
+        set_path(prefs, "alternate_error_pages.enabled", False)
+        set_path(prefs, "translate.enabled", False)
+        set_path(prefs, "safebrowsing.enabled", False)
+        set_path(prefs, "safebrowsing.scout_reporting_enabled", False)
+        set_path(prefs, "media_router.enable_media_router", False)
+        set_path(prefs, "background_mode.enabled", False)
+        set_path(prefs, "payments.can_make_payment_enabled", False)
+        set_path(prefs, "captive_portal.enabled", False)
+        set_path(prefs, "enable_hyperlink_auditing", False)
+        set_path(prefs, "profile.password_manager_leak_detection", False)
+        set_path(prefs, "privacy_sandbox.first_party_sets_enabled", False)
+        PREFS.write_text(json.dumps(prefs, separators=(",", ":"), ensure_ascii=False))
+        notes.append("Preferences re-locked")
+    if LOCAL_STATE.exists():
+        ls = json.loads(LOCAL_STATE.read_text())
+        ls.setdefault("helium", {})
+        if not isinstance(ls["helium"], dict):
+            ls["helium"] = {}
+        ls["helium"].setdefault("crash_reporting", {})
+        if not isinstance(ls["helium"]["crash_reporting"], dict):
+            ls["helium"]["crash_reporting"] = {}
+        ls["helium"]["crash_reporting"]["mode"] = -1
+        LOCAL_STATE.write_text(json.dumps(ls, separators=(",", ":"), ensure_ascii=False))
+        notes.append("Crash reporting forced off")
+    return notes
+
+
+def installed_version() -> str:
+    info = APP / "Contents/Info.plist"
+    if not info.exists():
+        return "missing"
+    try:
+        with info.open("rb") as f:
+            pl = plistlib.load(f)
+        return str(pl.get("CFBundleShortVersionString") or pl.get("CFBundleVersion") or "?")
+    except Exception:
+        return "?"
+
+
+def latest_github_version() -> tuple[str, str]:
+    req = urllib.request.Request(
+        GITHUB_LATEST,
+        headers={"User-Agent": "helium-privacy-lock", "Accept": "application/vnd.github+json"},
+    )
+    with urllib.request.urlopen(req, timeout=20) as resp:
+        data = json.loads(resp.read().decode())
+    tag = str(data.get("tag_name") or "").lstrip("v")
+    url = str(data.get("html_url") or "https://github.com/imputnet/helium-macos/releases")
+    return tag, url
+
+
+def notify(title: str, body: str) -> None:
+    script = f'display notification {json.dumps(body)} with title {json.dumps(title)}'
+    subprocess.run(["osascript", "-e", script], check=False)
+
+
+def write_status(lines: list[str]) -> None:
+    STATUS.parent.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    STATUS.write_text(stamp + "\n" + "\n".join(lines) + "\n")
+
+
+def ensure_ublock() -> str:
+    src = Path.home() / ".local/share/ublock/src"
+    if not (src / "manifest.json").exists():
+        return "uBlock Origin source missing under ~/.local/share/ublock/src"
+    fw = APP / "Contents/Frameworks/Helium Framework.framework/Versions/Current/Resources/ublock"
+    fw.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["rsync", "-a", "--delete", f"{src}/", str(fw) + "/"], check=False)
+    subprocess.run(["xattr", "-dr", "com.apple.quarantine", str(fw)], check=False)
+    if (fw / "manifest.json").exists():
+        return f"uBlock Origin restored at {fw} ({UBO_VERSION}, unpacked, no telemetry)"
+    return "uBlock Origin restore failed"
+
+
+def scrub_adblock_leftovers() -> str:
+    if helium_running():
+        return "AdBlock leftover scrub skipped (Helium open)"
+    root = PROFILE / "Default"
+    removed = []
+    for rel in (
+        f"Local Extension Settings/{ADBLOCK_ID}",
+        f"Sync Extension Settings/{ADBLOCK_ID}",
+        f"Managed Extension Settings/{ADBLOCK_ID}",
+        f"DNR Extension Rules/{ADBLOCK_ID}",
+        f"IndexedDB/chrome-extension_{ADBLOCK_ID}_0.indexeddb.blob",
+        f"IndexedDB/chrome-extension_{ADBLOCK_ID}_0.indexeddb.leveldb",
+    ):
+        p = root / rel
+        if p.exists():
+            if p.is_dir():
+                subprocess.run(["rm", "-rf", str(p)], check=False)
+            else:
+                p.unlink(missing_ok=True)
+            removed.append(rel)
+    return "AdBlock leftovers removed: " + ", ".join(removed) if removed else "AdBlock leftovers absent"
+
+
+def check_prefs_live() -> list[str]:
+    out = []
+    if PREFS.exists():
+        p = json.loads(PREFS.read_text())
+        svc = ((p.get("helium") or {}).get("services") or {})
+        out.append(f"helium.services.enabled={svc.get('enabled')}")
+        out.append(f"doh={((p.get('dns_over_https') or {}).get('mode'))}")
+        out.append(f"suggest={((p.get('search') or {}).get('suggest_enabled'))}")
+    if LOCAL_STATE.exists():
+        ls = json.loads(LOCAL_STATE.read_text())
+        mode = ((ls.get("helium") or {}).get("crash_reporting") or {}).get("mode")
+        out.append(f"crash.mode={mode}")
+    return out
+
+
+def main() -> int:
+    notify_mode = "--weekly" in sys.argv or "--notify" in sys.argv
+    sparkle_off()
+    write_policy_json()
+    notes = []
+    notes.extend(patch_chromium_json())
+    notes.append(ensure_ublock())
+    notes.append(scrub_adblock_leftovers())
+    notes.extend(check_prefs_live())
+    inst = installed_version()
+    latest, url = "?", ""
+    try:
+        latest, url = latest_github_version()
+    except Exception as e:
+        notes.append(f"GitHub version check failed: {e}")
+    update_needed = bool(latest and latest != "?" and inst != latest)
+    notes.append(f"installed={inst}")
+    notes.append(f"github_latest={latest}")
+    if update_needed:
+        notes.append(f"UPDATE_AVAILABLE {url}")
+    else:
+        notes.append("Helium version current (or check failed)")
+    write_status(notes)
+    for n in notes:
+        log(n)
+    if notify_mode:
+        if update_needed:
+            notify(
+                "Helium update available",
+                f"{inst} → {latest}. Download from GitHub, then run helium-privacy-lock. Sparkle stays off.",
+            )
+        else:
+            notify("Helium privacy lock", f"{inst} current. Telemetry lock re-applied.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

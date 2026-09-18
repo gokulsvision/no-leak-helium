@@ -1,18 +1,49 @@
+> **This is a public fork:** [gokulsvision/helium-private](https://github.com/gokulsvision/helium-private)
+> of [imputnet/helium](https://github.com/imputnet/helium).
+> It is **not** an official Helium release.
+>
+> Extra patch: [`patches/gokul/zero-telemetry-defaults.patch`](patches/gokul/zero-telemetry-defaults.patch)
+> (Helium services off, crash uploads off, GPC on).
+>
+> macOS overlay for the official binary (no Chromium compile): [`overlay/macos`](overlay/macos).
+> What changed and why: [`RECORD.md`](RECORD.md).
+> How to pull upstream every week: [`MAINTAINING.md`](MAINTAINING.md).
+>
+> Packaging fork: [gokulsvision/helium-macos-private](https://github.com/gokulsvision/helium-macos-private).
+
 <div align="center">
     <img src="resources/branding/app_icon/raw.png"
         title="Helium" alt="Helium logo" width="120" />
-    <h1>Helium</h1>
+    <h1>helium-private</h1>
     <p>
-        The Chromium-based web browser made for people, with love.
+        Fork of Helium with first-party vendor channels off by default.
         <br>
-        Privacy-first with unbiased ad-blocking. No bloat and no noise.
+        Upstream Helium remains the Chromium-based browser this is built from.
     </p>
-    <a href="https://helium.computer/">
-        helium.computer
+    <a href="https://github.com/imputnet/helium">
+        upstream: imputnet/helium
     </a>
 </div>
 
-## Downloads
+## Downloads (upstream binaries + this overlay)
+
+Until this fork is compiled, install an official macOS build from
+[imputnet/helium-macos/releases](https://github.com/imputnet/helium-macos/releases),
+then apply the overlay:
+
+```bash
+git clone https://github.com/gokulsvision/helium-private.git
+cd helium-private/overlay/macos
+chmod +x install.sh helium-privacy-lock helium-privacy-install-system
+./install.sh
+# optional, makes vendor hosts unblockable from the UI:
+# osascript -e 'do shell script "'$HOME'/.local/bin/helium-privacy-install-system" with administrator privileges'
+```
+
+Ad blocking is **uBlock Origin** from [gorhill/uBlock](https://github.com/gorhill/uBlock), unpacked.
+Do not install the Chrome Web Store extension named "AdBlock".
+
+## Upstream Helium downloads
 > [!NOTE]
 > Helium is currently in beta, so unexpected issues may occur.
 > Please report them if they haven't already been reported.
