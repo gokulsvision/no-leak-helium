@@ -1,47 +1,53 @@
-> **This is a public fork:** [gokulsvision/helium-private](https://github.com/gokulsvision/helium-private)
-> of [imputnet/helium](https://github.com/imputnet/helium).
-> It is **not** an official Helium release.
->
-> Extra patch: [`patches/gokul/zero-telemetry-defaults.patch`](patches/gokul/zero-telemetry-defaults.patch)
-> (Helium services off, crash uploads off, GPC on).
->
-> macOS overlay for the official binary (no Chromium compile): [`overlay/macos`](overlay/macos).
-> What changed and why: [`RECORD.md`](RECORD.md).
-> How to pull upstream every week: [`MAINTAINING.md`](MAINTAINING.md).
->
-> Packaging fork: [gokulsvision/helium-macos-private](https://github.com/gokulsvision/helium-macos-private).
-
 <div align="center">
     <img src="resources/branding/app_icon/raw.png"
-        title="Helium" alt="Helium logo" width="120" />
-    <h1>helium-private</h1>
+        title="No Leak Helium" alt="Helium logo" width="120" />
+    <h1>No Leak Helium</h1>
     <p>
-        Fork of Helium with first-party vendor channels off by default.
+        A version of <a href="https://github.com/imputnet/helium">Helium</a> that is built so
+        <strong>nothing phones home unless you sent it there</strong>.
         <br>
-        Upstream Helium remains the Chromium-based browser this is built from.
+        No Helium telemetry. No Sparkle auto-update pings. No crash uploads.
+        No AdBlock (getadblock.com). Ads blocked with uBlock Origin.
+        RAM capped by hibernating old tabs.
     </p>
-    <a href="https://github.com/imputnet/helium">
-        upstream: imputnet/helium
-    </a>
 </div>
 
-## Downloads (upstream binaries + this overlay)
+This is **not** an official Helium release. It is a public fork of
+[imputnet/helium](https://github.com/imputnet/helium) (GPL-3.0) plus the
+features we actually run on a daily driver.
 
-Until this fork is compiled, install an official macOS build from
-[imputnet/helium-macos/releases](https://github.com/imputnet/helium-macos/releases),
-then apply the overlay:
+| What | How |
+|---|---|
+| No Helium services / crash / Sparkle | [`patches/gokul/zero-telemetry-defaults.patch`](patches/gokul/zero-telemetry-defaults.patch) + macOS overlay |
+| Ads without telemetry | Unpacked [uBlock Origin](https://github.com/gorhill/uBlock) (not Chrome Web Store “AdBlock”) |
+| RAM / tab budget | [`features/browser-management`](features/browser-management) — 5 GB cap, oldest tabs hibernate, nightly site-cache policy |
+| Public record of the audit | [`RECORD.md`](RECORD.md) |
+| Weekly upstream sync | [`MAINTAINING.md`](MAINTAINING.md) |
+
+macOS packaging fork: [no-leak-helium-macos](https://github.com/gokulsvision/no-leak-helium-macos).
+
+## Install on a Mac (no Chromium compile)
+
+Use an official Helium build, then apply this overlay. The app stays `Helium.app`;
+the lock is what makes it No Leak Helium.
 
 ```bash
-git clone https://github.com/gokulsvision/helium-private.git
-cd helium-private/overlay/macos
-chmod +x install.sh helium-privacy-lock helium-privacy-install-system
+git clone https://github.com/gokulsvision/no-leak-helium.git
+cd no-leak-helium/overlay/macos
+chmod +x install.sh helium-privacy-lock helium-privacy-install-system install-browser-management.sh
 ./install.sh
-# optional, makes vendor hosts unblockable from the UI:
-# osascript -e 'do shell script "'$HOME'/.local/bin/helium-privacy-install-system" with administrator privileges'
 ```
 
-Ad blocking is **uBlock Origin** from [gorhill/uBlock](https://github.com/gorhill/uBlock), unpacked.
-Do not install the Chrome Web Store extension named "AdBlock".
+That turns off vendor channels, installs uBlock Origin, and installs the tab
+budget (Helium only — it does not touch Chrome/Edge).
+
+To make Helium services / AdBlock / Sparkle **unblockable from the UI** (password prompt):
+
+```bash
+osascript -e 'do shell script "'$HOME'/.local/bin/helium-privacy-install-system" with administrator privileges'
+```
+
+Do **not** install the Chrome Web Store extension named “AdBlock”. That one had a tracking id.
 
 ## Upstream Helium downloads
 > [!NOTE]

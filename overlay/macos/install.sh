@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
-# Install the helium-private macOS overlay onto this machine.
+# Install No Leak Helium onto this Mac.
 # Does not require building Chromium. Works with the official Helium.app.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 BIN="$HOME/.local/bin"
 LAUNCH="$HOME/Library/LaunchAgents"
-mkdir -p "$BIN" "$LAUNCH" "$HOME/.helium-private" "$HOME/.local/share/ublock"
+mkdir -p "$BIN" "$LAUNCH" "$HOME/.no-leak-helium" "$HOME/.local/share/ublock" \
+  "$HOME/.local/share/no-leak-helium"
 
 install -m 755 "$ROOT/helium-privacy-lock" "$BIN/helium-privacy-lock"
 install -m 755 "$ROOT/helium-privacy-install-system" "$BIN/helium-privacy-install-system"
+install -m 755 "$ROOT/install-browser-management.sh" "$BIN/no-leak-helium-tab-budget"
+
+# Tab budget + nightly cache policy (Helium only).
+bash "$ROOT/install-browser-management.sh"
 
 # Fill user-specific paths into the LaunchAgent.
 python3 - <<PY
@@ -38,9 +43,9 @@ uid_plist = f"""<?xml version="1.0" encoding="UTF-8"?>
     <integer>0</integer>
   </dict>
   <key>StandardOutPath</key>
-  <string>{home}/.helium-private/lock.out</string>
+  <string>{home}/.no-leak-helium/lock.out</string>
   <key>StandardErrorPath</key>
-  <string>{home}/.helium-private/lock.err</string>
+  <string>{home}/.no-leak-helium/lock.err</string>
 </dict>
 </plist>
 """
@@ -56,8 +61,8 @@ launchctl bootstrap "gui/${uid}" "$LAUNCH/net.gokul.helium-privacy.plist"
 launchctl enable "gui/${uid}/net.gokul.helium-privacy"
 
 echo
-echo "User-space lock installed. To make Helium services/AdBlock/Sparkle"
-echo "unblockable from the browser UI, run (macOS password prompt):"
+echo "No Leak Helium user-space lock + tab budget installed."
+echo "To make Helium services/AdBlock/Sparkle unblockable from the UI:"
 echo "  osascript -e 'do shell script \"$BIN/helium-privacy-install-system\" with administrator privileges'"
 echo
 echo "Weekly check: Sunday 10:00. Manual: python3 ~/.local/bin/helium-privacy-lock --weekly"

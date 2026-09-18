@@ -1,7 +1,10 @@
 # Maintaining this fork
 
-This repository is a public, GPL-3.0 fork of [imputnet/helium](https://github.com/imputnet/helium).
-The extra patch lives in `patches/gokul/` and the macOS runtime lock lives in `overlay/macos/`.
+**No Leak Helium** is a public, GPL-3.0 fork of [imputnet/helium](https://github.com/imputnet/helium).
+Repo: [gokulsvision/no-leak-helium](https://github.com/gokulsvision/no-leak-helium).
+
+The extra patch lives in `patches/gokul/`. The macOS runtime lock lives in `overlay/macos/`.
+Tab budget lives in `features/browser-management/`.
 
 ## Weekly (already automated two ways)
 
@@ -18,7 +21,7 @@ python3 ~/.local/bin/helium-privacy-lock --weekly
 ## Pulling a new Helium source revision
 
 ```bash
-cd helium-private
+cd no-leak-helium
 git fetch upstream
 git merge upstream/main
 # If quilt/build later fails on our patch:
@@ -29,11 +32,10 @@ git push origin main
 Then, if you build from source, update the macOS packaging fork:
 
 ```bash
-cd helium-macos-private
+cd no-leak-helium-macos
 git fetch upstream
 git merge upstream/main
-# helium-chromium submodule should point at gokulsvision/helium-private
-git submodule set-url helium-chromium https://github.com/gokulsvision/helium-private.git
+git submodule set-url helium-chromium https://github.com/gokulsvision/no-leak-helium.git
 git submodule update --remote helium-chromium
 git push origin main
 ```

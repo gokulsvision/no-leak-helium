@@ -19,15 +19,17 @@ from pathlib import Path
 PROFILE = Path.home() / "Library/Application Support/net.imput.helium"
 PREFS = PROFILE / "Default/Preferences"
 LOCAL_STATE = PROFILE / "Local State"
-STATUS = Path.home() / ".helium-private/status.txt"
+STATUS = Path.home() / ".no-leak-helium/status.txt"
 POLICY_DIR = PROFILE / "policies/managed"
 POLICY_JSON = POLICY_DIR / "privacy.json"
-STAGED_MANAGED = Path.home() / ".helium-private/net.imput.helium.managed.plist"
+STAGED_MANAGED = Path.home() / ".no-leak-helium/net.imput.helium.managed.plist"
 APP = Path("/Applications/Helium.app")
 ADBLOCK_ID = "gighmmpiobklfepjocnamgkkbiglidom"
 UBO_ID = "cjpalhdlnbpafiamejdnhcphjbkeiagm"
 UBO_CRX = Path.home() / ".local/share/ublock/uBlock0_1.75.0.chromium.crx"
 UBO_VERSION = "1.75.0"
+BMS_ID = "occkalmjgdilhnphpbjopodjkpppcddj"
+BMS_SHARE = Path.home() / ".local/share/no-leak-helium/browser-management"
 GITHUB_LATEST = "https://api.github.com/repos/imputnet/helium-macos/releases/latest"
 DOH = "https://dns.mullvad.net/dns-query"
 
@@ -224,6 +226,16 @@ def ensure_ublock() -> str:
     return "uBlock Origin restore failed"
 
 
+def ensure_tab_budget() -> str:
+    src = BMS_SHARE / "extension"
+    if not (src / "manifest.json").exists():
+        return "tab budget extension not installed under ~/.local/share/no-leak-helium"
+    dest = PROFILE / "Default/Extensions" / BMS_ID / "1.4.0_1"
+    dest.mkdir(parents=True, exist_ok=True)
+    subprocess.run(["rsync", "-a", "--delete", f"{src}/", str(dest) + "/"], check=False)
+    return f"tab budget restored ({BMS_ID})"
+
+
 def scrub_adblock_leftovers() -> str:
     if helium_running():
         return "AdBlock leftover scrub skipped (Helium open)"
@@ -269,6 +281,7 @@ def main() -> int:
     notes = []
     notes.extend(patch_chromium_json())
     notes.append(ensure_ublock())
+    notes.append(ensure_tab_budget())
     notes.append(scrub_adblock_leftovers())
     notes.extend(check_prefs_live())
     inst = installed_version()

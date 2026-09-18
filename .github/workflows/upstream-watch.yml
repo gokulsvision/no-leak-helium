@@ -28,7 +28,7 @@ jobs:
             echo "In sync with imputnet/helium main."
             exit 0
           fi
-          TITLE="Upstream Helium moved ($UPSTREAM)"
+          TITLE="No Leak Helium: upstream Helium moved ($UPSTREAM)"
           BODY=$(cat <<EOF
           imputnet/helium main is ahead of this fork.
 

@@ -2,7 +2,7 @@
 # One-time admin lock: macOS managed policies + /etc/hosts sinkhole.
 # Helium UI cannot override these. Safe to re-run.
 set -euo pipefail
-STAGED="$HOME/.helium-private/net.imput.helium.managed.plist"
+STAGED="$HOME/.no-leak-helium/net.imput.helium.managed.plist"
 DEST="/Library/Managed Preferences/net.imput.helium.plist"
 HOSTS="/etc/hosts"
 MARKER="# helium-privacy-lock"

@@ -1,6 +1,7 @@
-# Public record: helium-private lock (2026-09-17)
+# Public record: No Leak Helium (2026-09-17)
 
-Fork of [imputnet/helium](https://github.com/imputnet/helium) (GPL-3.0).
+Fork of [imputnet/helium](https://github.com/imputnet/helium) (GPL-3.0),
+published as [gokulsvision/no-leak-helium](https://github.com/gokulsvision/no-leak-helium).
 Audited against Helium 0.17.1.1 / Chromium 153.0.8010.47 on macOS.
 
 This is not a claim that browsing is anonymous. Sites you open still see you.
@@ -27,6 +28,20 @@ It is a claim that **Helium the vendor, Sparkle, crash uploads, and AdBlock (get
 - `helium.services.enabled` defaults to **false**
 - crash reporting defaults to **kDisabled**
 - Global Privacy Control defaults to **true**
+
+## Tab budget (merged in)
+
+Previously a separate repo
+([helium-browser-management-system](https://github.com/gokulsvision/helium-browser-management-system)).
+Now [`features/browser-management`](features/browser-management) (MIT):
+
+- 5 GB RAM cap for the Helium process tree
+- Oldest unused background tabs hibernate (`tabs.discard`)
+- URLs filed by topic so you can reopen them
+- Nightly site-cache clear from `POLICY.md` (default: riverside.com service-worker)
+- Never deletes cookies, logins, IndexedDB, or sessions
+- Native helper is local stdio only — no network
+- Installed for **Helium only**, not Chrome/Edge/etc.
 
 ## Runtime overlay (official binary, no Chromium compile)
 
