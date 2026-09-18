@@ -1,4 +1,13 @@
-# Contributing to Helium
+# Contributing
+
+**This is No Leak Helium, a personal fork.** I am not Helium and I am not taking
+product feature requests. If you want to contribute to upstream Helium, go to
+[imputnet/helium](https://github.com/imputnet/helium).
+
+The rest of this file is upstream Helium's patch-workflow notes, kept because
+this tree is still a Helium patchset.
+
+# Contributing to Helium (upstream text)
 
 This repository contains Helium's shared Chromium patches, resources, and
 development tooling. Platform-specific packaging and build environments live in

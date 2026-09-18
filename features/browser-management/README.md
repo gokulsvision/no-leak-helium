@@ -1,6 +1,7 @@
-# Tab budget (Browser Management)
+# Tab budget (performance)
 
-Part of **No Leak Helium**. MIT licensed (`LICENSE` in this folder).
+Part of **No Leak Helium**, a personal Helium fork. MIT licensed (`LICENSE` in this folder).
+This is not an official Helium feature.
 
 Keeps Helium under a **5 GB RAM** budget by hibernating the oldest unused
 background tabs, and optionally clears listed **site caches** at 03:00.

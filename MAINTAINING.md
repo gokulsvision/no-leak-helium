@@ -1,7 +1,9 @@
-# Maintaining this fork
+# Maintaining this personal fork
 
-**No Leak Helium** is a public, GPL-3.0 fork of [imputnet/helium](https://github.com/imputnet/helium).
+**No Leak Helium** is my (Gokul / GokulsVision) personal, public, GPL-3.0 fork of [imputnet/helium](https://github.com/imputnet/helium).
 Repo: [gokulsvision/no-leak-helium](https://github.com/gokulsvision/no-leak-helium).
+
+I keep it in sync with upstream so security patches land. I do not take product requests. If you use it, you maintain your own copy.
 
 The extra patch lives in `patches/gokul/`. The macOS runtime lock lives in `overlay/macos/`.
 Tab budget lives in `features/browser-management/`.

@@ -1,35 +1,68 @@
-<div align="center">
-    <img src="resources/branding/app_icon/raw.png"
-        title="No Leak Helium" alt="Helium logo" width="120" />
-    <h1>No Leak Helium</h1>
-    <p>
-        A version of <a href="https://github.com/imputnet/helium">Helium</a> that is built so
-        <strong>nothing phones home unless you sent it there</strong>.
-        <br>
-        No Helium telemetry. No Sparkle auto-update pings. No crash uploads.
-        No AdBlock (getadblock.com). Ads blocked with uBlock Origin.
-        RAM capped by hibernating old tabs.
-    </p>
-</div>
+# No Leak Helium
 
-This is **not** an official Helium release. It is a public fork of
-[imputnet/helium](https://github.com/imputnet/helium) (GPL-3.0) plus the
-features we actually run on a daily driver.
+**A personal software fork of [Helium](https://github.com/imputnet/helium).**  
+No-leak and performance-oriented. Not an official Helium product. Not affiliated with [imput](https://github.com/imputnet).
 
-| What | How |
+I (Gokul / [GokulsVision](https://github.com/gokulsvision)) use Helium every day and wanted one browser that:
+
+1. **Does not phone home** to Helium, Sparkle, crash servers, or AdBlock.
+2. **Stays fast and light** — 5 GB RAM cap, oldest unused tabs hibernate, bloated site caches get cleared on a schedule.
+3. **Still blocks ads** without a tracker-filled “AdBlock” extension.
+
+This repo is the public record of that fork. I maintain it for myself. You can read it, copy it, or ignore it. There is no support channel, no company, and no promise that it is right for anyone else.
+
+| | |
 |---|---|
-| No Helium services / crash / Sparkle | [`patches/gokul/zero-telemetry-defaults.patch`](patches/gokul/zero-telemetry-defaults.patch) + macOS overlay |
-| Ads without telemetry | Unpacked [uBlock Origin](https://github.com/gorhill/uBlock) (not Chrome Web Store “AdBlock”) |
-| RAM / tab budget | [`features/browser-management`](features/browser-management) — 5 GB cap, oldest tabs hibernate, nightly site-cache policy |
-| Public record of the audit | [`RECORD.md`](RECORD.md) |
-| Weekly upstream sync | [`MAINTAINING.md`](MAINTAINING.md) |
+| Source fork | this repo (`gokulsvision/no-leak-helium`) |
+| macOS packaging fork | [no-leak-helium-macos](https://github.com/gokulsvision/no-leak-helium-macos) |
+| Upstream browser | [imputnet/helium](https://github.com/imputnet/helium) (GPL-3.0) |
+| What changed and why | [RECORD.md](RECORD.md) |
+| How I pull upstream | [MAINTAINING.md](MAINTAINING.md) |
 
-macOS packaging fork: [no-leak-helium-macos](https://github.com/gokulsvision/no-leak-helium-macos).
+The app on disk is still `Helium.app` until I ship a compiled build from this tree. The overlay in [`overlay/macos`](overlay/macos) is what makes a stock Helium binary behave like No Leak Helium.
+
+---
+
+## What “no leak” means here
+
+**Vendor and extension background channels are off.** The browser does not talk to Helium services, Helium crash reporting, Sparkle auto-update, or getadblock.com unless you deliberately undo the lock.
+
+It does **not** mean:
+
+- Websites you open cannot see you (Gmail is still Gmail).
+- You are un-fingerprintable.
+- DNS and TLS are magic. Encrypted DNS goes to Mullvad; Apple still does OS certificate checks.
+
+If you type a URL or submit a search, that destination is allowed. The point is that **Helium itself is not an extra destination**.
+
+## What “performance-oriented” means here
+
+Helium is already a thin Chromium. This fork adds a **tab budget** so one long session cannot eat the machine:
+
+- Whole Helium process tree capped at **5 GB RAM**.
+- Oldest unused background tabs **hibernate** (sleep, not close). Active, pinned, and audible tabs are left alone.
+- Hibernated URLs are grouped by topic so you can reopen them.
+- Optional nightly clear of listed **site caches** (default: riverside.com service workers). Cookies and logins are never deleted.
+
+That code lives in [`features/browser-management`](features/browser-management) (MIT). It only installs for Helium, not Chrome or Edge.
+
+## What is in this fork
+
+| Piece | Purpose |
+|---|---|
+| [`patches/gokul/zero-telemetry-defaults.patch`](patches/gokul/zero-telemetry-defaults.patch) | Helium services default **off**, crash uploads default **off**, Global Privacy Control default **on** |
+| [`overlay/macos`](overlay/macos) | Locks a stock Helium.app: Sparkle off, prefs, hosts/policies, uBlock restore, weekly check |
+| [`features/browser-management`](features/browser-management) | 5 GB tab budget + nightly cache policy |
+| Unpacked [uBlock Origin](https://github.com/gorhill/uBlock) | Ads/trackers blocked without Chrome Web Store AdBlock |
+
+Do not install the Chrome Web Store extension named **AdBlock**. That one carried a tracking id on this machine.
+
+---
 
 ## Install on a Mac (no Chromium compile)
 
-Use an official Helium build, then apply this overlay. The app stays `Helium.app`;
-the lock is what makes it No Leak Helium.
+1. Install an official Helium build from [imputnet/helium-macos/releases](https://github.com/imputnet/helium-macos/releases).
+2. Apply this overlay:
 
 ```bash
 git clone https://github.com/gokulsvision/no-leak-helium.git
@@ -38,86 +71,32 @@ chmod +x install.sh helium-privacy-lock helium-privacy-install-system install-br
 ./install.sh
 ```
 
-That turns off vendor channels, installs uBlock Origin, and installs the tab
-budget (Helium only — it does not touch Chrome/Edge).
+That turns off vendor channels, restores uBlock Origin, and installs the tab budget.
 
-To make Helium services / AdBlock / Sparkle **unblockable from the UI** (password prompt):
+3. Optional — make Helium services / AdBlock / Sparkle **unblockable from the UI** (macOS password prompt):
 
 ```bash
 osascript -e 'do shell script "'$HOME'/.local/bin/helium-privacy-install-system" with administrator privileges'
 ```
 
-Do **not** install the Chrome Web Store extension named “AdBlock”. That one had a tracking id.
+Reload `helium://extensions` once if the tab-budget extension still shows the old “RAM Cap” name.
 
-## Upstream Helium downloads
-> [!NOTE]
-> Helium is currently in beta, so unexpected issues may occur.
-> Please report them if they haven't already been reported.
+A LaunchAgent re-applies the lock every Sunday at 10:00 and tells you if a new official Helium exists. I update from GitHub by hand; Sparkle stays off.
 
-The easiest way to download Helium is [helium.computer](https://helium.computer/).
-It'll pick a compatible binary for your platform automatically.
+---
 
-The same releases can also be downloaded from source on GitHub:
+## Building from source
 
-- [Latest macOS release](https://github.com/imputnet/helium-macos/releases/latest)
-- [Latest Linux release](https://github.com/imputnet/helium-linux/releases/latest)
-- [Latest Windows release](https://github.com/imputnet/helium-windows/releases/latest)
+Full Chromium compile: Xcode, tens of GB, hours. Packaging is [no-leak-helium-macos](https://github.com/gokulsvision/no-leak-helium-macos), which points its submodule here instead of `imputnet/helium`. See upstream’s [building notes](https://github.com/imputnet/helium-macos/blob/main/docs/building.md) and [MAINTAINING.md](MAINTAINING.md).
 
-## Helium repos
-All Helium packaging, tooling, services, and components are open source
-and published on GitHub.
+I have not shipped a signed `No Leak Helium.app` yet. Until then, official binary + overlay is the daily driver.
 
-### Platform packaging and tooling
-- [Helium for macOS](https://github.com/imputnet/helium-macos)
-- [Helium for Linux](https://github.com/imputnet/helium-linux)
-- [Helium for Windows](https://github.com/imputnet/helium-windows)
+---
 
-### Web services and Helium components
-- [Helium services](https://github.com/imputnet/helium-services)
-- [Helium onboarding](https://github.com/imputnet/helium-onboarding)
-- [Helium fork of uBlock Origin](https://github.com/imputnet/uBlock)
+## License and credit
 
-## Development
-macOS is our primary development platform, so it's the recommended
-development environment for community contributions.
+Helium, and the patches unique to Helium, are **GPL-3.0**. See [LICENSE](LICENSE).  
+Tab budget is **MIT** (`features/browser-management/LICENSE`).  
+uBlock Origin is gorhill’s GPL-3.0 project.
 
-Linux packaging includes a similar development script, so the same guide
-can be applied there too.
-
-[> See development docs in macOS repo](https://github.com/imputnet/helium-macos/blob/main/docs/building.md#development-build-and-environment)
-
-## Contributing
-Before contributing to Helium, please read the guidelines in
-[CONTRIBUTING.md](CONTRIBUTING.md).
-
-## Credits
-
-### The Chromium project
-[The Chromium Project](https://www.chromium.org/) is at the core of Helium,
-making it possible in the first place.
-
-### ungoogled-chromium
-This repo is based on [ungoogled-chromium](https://github.com/ungoogled-software/ungoogled-chromium),
-but heavily modified for Helium. Special thanks to everyone behind ungoogled-chromium,
-they made working with Chromium way easier.
-
-### Other Chromium browsers
-
-Helium includes some patches from other open source Chromium browsers:
-
-- [Inox patchset](https://github.com/gcarq/inox-patchset)
-- [Debian](https://tracker.debian.org/pkg/chromium-browser)
-- [Bromite](https://github.com/bromite/bromite)
-- [Iridium Browser](https://iridiumbrowser.de/)
-- [Brave](https://github.com/brave/brave-core)
-
-All patches are sorted by vendor in the [patches](patches/) directory of this repo.
-
-## License
-All code, patches, modified portions of imported code or patches, and
-any other content that is unique to Helium and not imported from other
-repositories is licensed under GPL-3.0. See [LICENSE](LICENSE).
-
-Any content imported from other projects retains its original license (for
-example, any original unmodified code imported from ungoogled-chromium remains
-licensed under their [BSD 3-Clause license](LICENSE.ungoogled_chromium)).
+This fork would not exist without Helium, ungoogled-chromium, and Chromium. I am not those projects. I am not asking anyone to switch. This is personal software, published so I can maintain it in the open.

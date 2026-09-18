@@ -1,8 +1,11 @@
-# Public record: No Leak Helium (2026-09-17)
+# Notes: what No Leak Helium actually is
 
-Fork of [imputnet/helium](https://github.com/imputnet/helium) (GPL-3.0),
-published as [gokulsvision/no-leak-helium](https://github.com/gokulsvision/no-leak-helium).
-Audited against Helium 0.17.1.1 / Chromium 153.0.8010.47 on macOS.
+**Personal software fork.** Gokul / [GokulsVision](https://github.com/gokulsvision). Not official Helium. Not a company product.
+
+Goal: a Helium that is **no-leak** (no vendor/extension background channel) and **performance-oriented** (hard RAM cap, hibernate old tabs, scheduled cache clear).
+
+Published as [gokulsvision/no-leak-helium](https://github.com/gokulsvision/no-leak-helium), GPL-3.0, forked from [imputnet/helium](https://github.com/imputnet/helium).
+Audited against Helium 0.17.1.1 / Chromium 153.0.8010.47 on macOS (2026-09-17).
 
 This is not a claim that browsing is anonymous. Sites you open still see you.
 It is a claim that **Helium the vendor, Sparkle, crash uploads, and AdBlock (getadblock.com) do not get a background channel**.
