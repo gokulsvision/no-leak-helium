@@ -53,6 +53,7 @@ That code lives in [`features/browser-management`](features/browser-management) 
 | [`patches/gokul/zero-telemetry-defaults.patch`](patches/gokul/zero-telemetry-defaults.patch) | Helium services default **off**, crash uploads default **off**, Global Privacy Control default **on** |
 | [`overlay/macos`](overlay/macos) | Locks a stock Helium.app: Sparkle off, prefs, hosts/policies, uBlock restore, weekly check |
 | [`features/browser-management`](features/browser-management) | 5 GB tab budget + nightly cache policy |
+| [`overlay/macos/bangs-mirror`](overlay/macos/bangs-mirror) | `!bang` shortcuts served from a loopback-only mirror — no Helium service contact |
 | Unpacked [uBlock Origin](https://github.com/gorhill/uBlock) | Ads/trackers blocked without Chrome Web Store AdBlock |
 
 Do not install the Chrome Web Store extension named **AdBlock**. That one carried a tracking id on this machine.
@@ -72,6 +73,18 @@ chmod +x install.sh helium-privacy-lock helium-privacy-install-system install-br
 ```
 
 That turns off vendor channels, restores uBlock Origin, and installs the tab budget.
+
+2. Optional — `!bang` shortcuts (GitHub, Wikipedia, etc.) served from a loopback-only mirror:
+
+```bash
+cd no-leak-helium/overlay/macos/bangs-mirror
+./install-bangs-mirror.sh
+```
+
+No Helium service is contacted: the bundle in this repo is served at
+`http://127.0.0.1:8317/bangs.json`, the browser is pointed at it via
+`helium.services.origin_override`, and `services.helium.imput.net` stays
+sinkholed. Remove with `./uninstall-bangs-mirror.sh`.
 
 3. Optional — make Helium services / AdBlock / Sparkle **unblockable from the UI** (macOS password prompt):
 

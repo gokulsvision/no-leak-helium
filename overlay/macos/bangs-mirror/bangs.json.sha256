@@ -1,0 +1,10 @@
+# No Leak Helium — bundled bang list provenance
+# (consumed by install-bangs-mirror.sh's sha256 pin)
+#
+# Source: bundled from the official Helium services endpoint
+#   https://services.helium.imput.net/bangs.json
+# Fetched: 2026-09-19 (via Mullvad DoH, bypassing the "/etc/hosts" sinkhole
+#           only for this one-time export; the browser never contacts it)
+# Upstream list: Kagi Search (MIT) + imput (2026), see header comments inside
+#   bangs.json. Triggers: 10,730 bang entries, keys: s=name, ts=triggers, u=url.
+sha256=4e43515474a503eae40b5e1878b8448b5d1162d21738acf159937105db548e59

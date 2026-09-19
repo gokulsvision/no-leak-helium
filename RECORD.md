@@ -63,6 +63,29 @@ Sinkholed names:
 - `updates.helium.computer`
 - `getadblock.com`, `www.getadblock.com`, `adblockcdn.com`
 
+## Bang shortcuts, kept local
+
+Stock Helium loads its `!bang` list from `https://services.helium.imput.net/bangs.json`
+(a Kagi-sourced manifest, ~1.4 MB / ~10.7k entries). This fork had Helium
+services locked **off**, which also killed bangs. Fixed without reopening any
+vendor channel:
+
+- [`overlay/macos/bangs-mirror`](overlay/macos/bangs-mirror) bundles a pinned
+  snapshot of the bang list (`bangs.json`, sha256-verified at install)
+- A LaunchAgent serves it from a **loopback-only** HTTP server
+  (`127.0.0.1:8317`), exposing exactly one route: `GET /bangs.json` — everything
+  else 404s
+- `helium.services.origin_override` is set to `http://127.0.0.1:8317`, which
+  Helium's own `GetValidUserOverridenURL` accepts (loopback exempt from the
+  HTTPS check). Every other service toggle stays `false`, so the master switch
+  enables a single loopback fetch and nothing else
+- `services.helium.imput.net` remains in the `/etc/hosts` sinkhole — even if a
+  future Helium build ignored the override, the real domain is unreachable
+
+Install: `overlay/macos/bangs-mirror/install-bangs-mirror.sh` ·
+Remove: `uninstall-bangs-mirror.sh` (reverts prefs to services-off).
+The weekly privacy lock re-applies this state and the others automatically.
+
 ## Still leaves the machine (accepted)
 
 - Pages you navigate to
@@ -70,6 +93,10 @@ Sinkholed names:
 - uBlock filter-list fetches (GitHub / EasyList see an IP pulling a public list)
 - Mullvad DoH (Mullvad sees Helium's domain lookups, not page bodies)
 - Apple `trustd` certificate checks (OS, every app)
+
+With the bangs mirror installed, the bang list itself is fetched **from the
+machine**, not from Mullvad or any external list host — one more thing that
+stays local.
 
 ## What we refused
 

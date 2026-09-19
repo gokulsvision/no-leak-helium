@@ -42,6 +42,34 @@ HOSTS_BLOCK = [
     "adblockcdn.com",
 ]
 
+# Loopback bang mirror: when installed, we permit ONLY the local bang-list
+# fetch. origin_override redirects every GetServicesBaseURL() resolution to
+# 127.0.0.1, so no Helium service ever reaches the real domain. Every other
+# service toggle stays False, and the mirror 404s all paths except /bangs.json.
+BANGS_FLAG = Path.home() / ".no-leak-helium/bangs-mirror.installed"
+
+
+def bangs_override() -> str | None:
+    """Return the origin_override value when the loopback mirror is installed.
+
+    Fail closed: a missing or unparseable flag never enables the services
+    master switch. The flag is written only by install-bangs-mirror.sh and
+    always carries a valid port.
+    """
+    if not BANGS_FLAG.exists():
+        return None
+    port = None
+    try:
+        for line in BANGS_FLAG.read_text().splitlines():
+            if line.startswith("port="):
+                port = line.split("=", 1)[1].strip()
+                break
+    except OSError:
+        return None
+    if port is None or not port.isdigit() or not (1 <= int(port) <= 65535):
+        return None
+    return f"http://127.0.0.1:{port}"
+
 CHROME_POLICIES = {
     "ExtensionInstallBlocklist": [ADBLOCK_ID],
     "ExtensionSettings": {
@@ -133,8 +161,19 @@ def patch_chromium_json() -> list[str]:
         return notes
     if PREFS.exists():
         prefs = json.loads(PREFS.read_text())
-        set_path(prefs, "helium.services.enabled", False)
-        set_path(prefs, "helium.services.bangs", False)
+        override = bangs_override()
+        if override:
+            # Bang mirror installed: allow ONLY the loopback bang fetch.
+            # The override redirects all GetServicesBaseURL() calls to
+            # 127.0.0.1, so Helium services cannot reach the real domain.
+            set_path(prefs, "helium.services.enabled", True)
+            set_path(prefs, "helium.services.bangs", True)
+            set_path(prefs, "helium.services.origin_override", override)
+            notes.append("Bangs: local mirror origin override active")
+        else:
+            set_path(prefs, "helium.services.enabled", False)
+            set_path(prefs, "helium.services.bangs", False)
+            set_path(prefs, "helium.services.origin_override", "")
         set_path(prefs, "helium.services.browser_updates", False)
         set_path(prefs, "helium.services.ext_proxy", False)
         set_path(prefs, "helium.services.spellcheck_files", False)
@@ -265,6 +304,7 @@ def check_prefs_live() -> list[str]:
         p = json.loads(PREFS.read_text())
         svc = ((p.get("helium") or {}).get("services") or {})
         out.append(f"helium.services.enabled={svc.get('enabled')}")
+        out.append(f"bang={svc.get('bangs')} orig={svc.get('origin_override') or '(default)'}")
         out.append(f"doh={((p.get('dns_over_https') or {}).get('mode'))}")
         out.append(f"suggest={((p.get('search') or {}).get('suggest_enabled'))}")
     if LOCAL_STATE.exists():
